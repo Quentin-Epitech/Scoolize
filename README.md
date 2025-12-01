@@ -1,4 +1,6 @@
-# Scoolize
+Parcour Stup :
 
-- Push de la liste de écoles supérieurs
--
+
+Pour essayer de mettre ses notes avec un import de pdf : 
+
+utiliser OCR (optical character recognition)

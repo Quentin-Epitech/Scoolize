@@ -1,0 +1,228 @@
+:root {
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: dark;
+  color: #e5e7eb;
+  background-color: #0f172a;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Palette sobre - Dark Mode */
+  --primary-color: #3b82f6;
+  --primary-hover: #2563eb;
+  --secondary-color: #64748b;
+  --border-color: #1e293b;
+  --card-bg: #1e293b;
+  --input-bg: #0f172a;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --success-color: #10b981;
+  --error-color: #ef4444;
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #0f172a;
+  color: var(--text-primary);
+}
+
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+  width: 100%;
+}
+
+h1 {
+  font-size: 2.5em;
+  line-height: 1.1;
+  color: var(--text-primary);
+  margin-bottom: 0.5em;
+  font-weight: 700;
+}
+
+h2 {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+h3 {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+button {
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+button:hover {
+  background-color: #334155;
+  border-color: var(--secondary-color);
+}
+
+button:focus,
+button:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Card simple */
+.glass-card {
+  background: var(--card-bg);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow);
+  padding: 2rem;
+  margin: 1rem 0;
+  text-align: left;
+}
+
+/* Form Elements */
+input,
+select {
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.8rem;
+  color: var(--text-primary);
+  font-size: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 1rem;
+  transition: all 0.2s ease;
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  background: #1e293b;
+}
+
+input::placeholder {
+  color: var(--text-secondary);
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Primary Button */
+.btn-primary {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  font-weight: 600;
+  width: 100%;
+  padding: 1rem;
+  margin-top: 1rem;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow);
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-primary:disabled {
+  background: var(--secondary-color);
+  cursor: not-allowed;
+  transform: none;
+  opacity: 0.6;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.btn-secondary:hover {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border-color: var(--secondary-color);
+}
+
+/* Grid Layouts */
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Animations subtiles */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* Scrollbar sobre */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--input-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--secondary-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-color);
+}
+
+/* Container */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
