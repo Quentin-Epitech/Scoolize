@@ -55,7 +55,7 @@ export default function Login({ onToggleMode }: LoginProps) {
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••"
+                        placeholder="*******"
                         required
                     />
                 </div>
