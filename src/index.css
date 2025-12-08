@@ -180,8 +180,18 @@ label {
   gap: 1rem;
 }
 
+.grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+}
+
 @media (max-width: 768px) {
   .grid-2 {
+    grid-template-columns: 1fr;
+  }
+  
+  .grid-3 {
     grid-template-columns: 1fr;
   }
 }
@@ -203,7 +213,7 @@ label {
   animation: fadeIn 0.3s ease-out forwards;
 }
 
-/* Scrollbar sobre */
+
 ::-webkit-scrollbar {
   width: 8px;
 }

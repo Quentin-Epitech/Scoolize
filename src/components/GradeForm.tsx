@@ -27,6 +27,9 @@ export default function GradeForm() {
     const [subjectType, setSubjectType] = useState<'commune' | 'specialite'>('commune')
     const [subject, setSubject] = useState('')
     const [grade, setGrade] = useState('')
+    const [classAverage, setClassAverage] = useState('')
+    const [lowestGrade, setLowestGrade] = useState('')
+    const [highestGrade, setHighestGrade] = useState('')
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null)
     const [savedGrades, setSavedGrades] = useState<any[]>([])
@@ -79,6 +82,9 @@ export default function GradeForm() {
                 subject_type: subjectType,
                 subject,
                 grade: parseFloat(grade),
+                class_average: classAverage ? parseFloat(classAverage) : null,
+                lowest_grade: lowestGrade ? parseFloat(lowestGrade) : null,
+                highest_grade: highestGrade ? parseFloat(highestGrade) : null,
                 tech_series: techSeries || null,
                 professional_field: professionalField || null
             }])
@@ -88,6 +94,9 @@ export default function GradeForm() {
             setMessage({ text: 'Note enregistrée avec succès ! ', type: 'success' })
             setGrade('')
             setSubject('')
+            setClassAverage('')
+            setLowestGrade('')
+            setHighestGrade('')
 
             const { data } = await supabase.from('grades').select('*').eq('user_id', user?.id).order('created_at', { ascending: false })
             if (data) setSavedGrades(data)
@@ -173,6 +182,21 @@ export default function GradeForm() {
                     </div>
                 </div>
 
+                <div className="grid-3">
+                    <div>
+                        <label htmlFor="classAverage">Moyenne de la classe (/20)</label>
+                        <input id="classAverage" type="number" min="0" max="20" step="0.01" value={classAverage} onChange={(e) => setClassAverage(e.target.value)} placeholder="Ex: 12.5" />
+                    </div>
+                    <div>
+                        <label htmlFor="lowestGrade">Note la plus basse (/20)</label>
+                        <input id="lowestGrade" type="number" min="0" max="20" step="0.01" value={lowestGrade} onChange={(e) => setLowestGrade(e.target.value)} placeholder="Ex: 8.0" />
+                    </div>
+                    <div>
+                        <label htmlFor="highestGrade">Note la plus haute (/20)</label>
+                        <input id="highestGrade" type="number" min="0" max="20" step="0.01" value={highestGrade} onChange={(e) => setHighestGrade(e.target.value)} placeholder="Ex: 18.5" />
+                    </div>
+                </div>
+
                 <button type="submit" className="btn-primary" disabled={loading}>
                     {loading ? 'Enregistrement...' : 'Ajouter la note'}
                 </button>
@@ -190,7 +214,7 @@ export default function GradeForm() {
                     savedGrades.length === 0 ? <p style={{ opacity: 0.7 }}>Aucune note enregistrée.</p> :
                         <div style={{ display: 'grid', gap: '1rem', marginTop: '1rem' }}>
                             {savedGrades.map((g) => (
-                                <motion.div key={g.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ background: 'var(--card-bg)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '1rem', alignItems: 'center' }}>
+                                <motion.div key={g.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ background: 'var(--card-bg)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr 1fr 1fr auto', gap: '1rem', alignItems: 'center' }}>
                                     <div>
                                         <strong style={{ color: 'var(--primary-color)' }}>{g.subject}</strong>
                                         <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.9rem', opacity: 0.7 }}>
@@ -201,8 +225,29 @@ export default function GradeForm() {
                                         <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.7 }}>{g.student_pathway} • {g.year_level}</p>
                                         <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.9rem', opacity: 0.7 }}>{g.term}</p>
                                     </div>
-                                    <div style={{ textAlign: 'center', fontSize: '1.5rem', fontWeight: 'bold', color: g.grade >= 10 ? 'var(--success-color)' : 'var(--error-color)' }}>
-                                        {g.grade}/20
+                                    <div style={{ textAlign: 'center' }}>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.7 }}>Ma note</p>
+                                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '1.2rem', fontWeight: 'bold', color: g.grade >= 10 ? 'var(--success-color)' : 'var(--error-color)' }}>
+                                            {g.grade}/20
+                                        </p>
+                                    </div>
+                                    <div style={{ textAlign: 'center' }}>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.7 }}>Moyenne classe</p>
+                                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                                            {g.class_average !== null && g.class_average !== undefined ? `${g.class_average}/20` : '-'}
+                                        </p>
+                                    </div>
+                                    <div style={{ textAlign: 'center' }}>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.7 }}>Note min</p>
+                                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                                            {g.lowest_grade !== null && g.lowest_grade !== undefined ? `${g.lowest_grade}/20` : '-'}
+                                        </p>
+                                    </div>
+                                    <div style={{ textAlign: 'center' }}>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.7 }}>Note max</p>
+                                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                                            {g.highest_grade !== null && g.highest_grade !== undefined ? `${g.highest_grade}/20` : '-'}
+                                        </p>
                                     </div>
                                     <button onClick={() => deleteGrade(g.id)} style={{ padding: '0.5rem', fontSize: '0.8rem', background: 'var(--error-color)', border: 'none', borderRadius: '4px', color: 'white', cursor: 'pointer' }}>
                                         Supprimer
