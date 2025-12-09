@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import Papa from 'papaparse'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from './Auth/AuthProvider'
+import { recommanderFormations, type ScoresEtudiant, type Preferences, type Formation } from '../lib/predict'
 
 interface School {
     'Identifiant de l\'établissement': string
@@ -11,6 +12,94 @@ interface School {
     'Département': string
     'Nom long de la formation': string
     'Lien vers la fiche formation': string
+}
+
+type GradeRow = {
+    id: number
+    subject: string
+    grade: number
+}
+
+type Rule = {
+    keywords: string[]
+    prerequis: Record<string, number>
+    poids: Record<string, number>
+}
+
+const RULES: Rule[] = [
+    {
+        keywords: ['ingénieur', 'ingénierie', 'science', 'physique', 'math'],
+        prerequis: { 'Mathématiques': 12, 'Physique-Chimie': 11 },
+        poids: { 'Mathématiques': 0.5, 'Physique-Chimie': 0.3, 'Anglais': 0.2 }
+    },
+    {
+        keywords: ['data', 'numérique', 'informatique', 'ia', 'algorithmie'],
+        prerequis: { 'Mathématiques': 13, 'NSI': 12 },
+        poids: { 'Mathématiques': 0.45, 'NSI': 0.35, 'Anglais': 0.2 }
+    },
+    {
+        keywords: ['commerce', 'gestion', 'business', 'eco', 'marketing'],
+        prerequis: { 'SES': 11, 'Anglais': 11 },
+        poids: { 'SES': 0.4, 'Anglais': 0.3, 'Mathématiques': 0.3 }
+    },
+    {
+        keywords: ['santé', 'médical', 'biologie', 'svt'],
+        prerequis: { 'SVT': 13, 'Physique-Chimie': 12 },
+        poids: { 'SVT': 0.5, 'Physique-Chimie': 0.3, 'Mathématiques': 0.2 }
+    },
+    {
+        keywords: ['design', 'art', 'graphisme', 'création'],
+        prerequis: { 'Arts plastiques': 11, 'Anglais': 10 },
+        poids: { 'Arts plastiques': 0.5, 'Anglais': 0.3, 'Mathématiques': 0.2 }
+    }
+]
+
+const DEFAULT_RULE: Rule = {
+    keywords: [],
+    prerequis: { 'Mathématiques': 10, 'Anglais': 10 },
+    poids: { 'Mathématiques': 0.6, 'Anglais': 0.4 }
+}
+
+const aggregateScores = (grades: GradeRow[]): ScoresEtudiant => {
+    const accumulator: Record<string, { sum: number, count: number }> = {}
+
+    grades.forEach(({ subject, grade }) => {
+        if (!subject) return
+        if (!accumulator[subject]) {
+            accumulator[subject] = { sum: 0, count: 0 }
+        }
+        accumulator[subject].sum += grade
+        accumulator[subject].count += 1
+    })
+
+    const aggregated: ScoresEtudiant = {}
+    Object.entries(accumulator).forEach(([subject, { sum, count }]) => {
+        aggregated[subject] = parseFloat((sum / count).toFixed(2))
+    })
+
+    return aggregated
+}
+
+const findRuleForProgram = (programName: string): Rule => {
+    const lower = programName.toLowerCase()
+    return RULES.find(rule => rule.keywords.some(keyword => lower.includes(keyword))) || DEFAULT_RULE
+}
+
+const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v))
+const hashBias = (text: string) => ((text.split('').reduce((s, c) => s + c.charCodeAt(0), 0) % 9) - 4) // [-4;4]
+
+const toFormation = (school: School): Formation => {
+    const rule = findRuleForProgram(school['Nom long de la formation'] || '')
+    return {
+        nom: school['Nom de l\'établissement'],
+        prerequis: rule.prerequis,
+        poids: rule.poids,
+        cout: 0,
+        distanceKm: 10,
+        mode: 'presentiel',
+        tags: rule.keywords,
+        capaciteDisponible: 100
+    }
 }
 
 export default function SchoolSelector() {
@@ -23,6 +112,8 @@ export default function SchoolSelector() {
     const [saving, setSaving] = useState(false)
     const [savedWishes, setSavedWishes] = useState<any[]>([])
     const [loadingWishes, setLoadingWishes] = useState(true)
+    const [studentGrades, setStudentGrades] = useState<GradeRow[]>([])
+    const [loadingGrades, setLoadingGrades] = useState(true)
 
     useEffect(() => {
         Papa.parse('/fr-esr-cartographie_formations_parcoursup.csv', {
@@ -49,6 +140,19 @@ export default function SchoolSelector() {
     }, [user])
 
     useEffect(() => {
+        if (!user) return
+        setLoadingGrades(true)
+        supabase.from('grades')
+            .select('id, subject, grade')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .then(({ data, error }) => {
+                if (!error && data) setStudentGrades(data as GradeRow[])
+                setLoadingGrades(false)
+            })
+    }, [user])
+
+    useEffect(() => {
         if (searchTerm.length < 3) {
             setFilteredSchools([])
             return
@@ -68,6 +172,36 @@ export default function SchoolSelector() {
             : [...selectedSchools, school]
         )
     }
+
+    const aggregatedScores = useMemo(() => aggregateScores(studentGrades), [studentGrades])
+    const overallAvg = useMemo(() => {
+        if (!studentGrades.length) return 10
+        const total = studentGrades.reduce((s, g) => s + (g.grade || 0), 0)
+        return parseFloat((total / studentGrades.length).toFixed(2))
+    }, [studentGrades])
+
+    const defaultPreferences = useMemo<Preferences>(() => ({
+        budgetMax: 100000,
+        distanceMaxKm: 1000,
+        modeSouhaite: 'indifferent',
+        tagsInterets: []
+    }), [])
+
+    const computeCompatibility = useCallback((school: School) => {
+        if (!studentGrades.length) return null
+        const formation = toFormation(school)
+        const scoresComplets: ScoresEtudiant = { ...aggregatedScores }
+        Object.keys(formation.prerequis).forEach((m) => {
+            if (scoresComplets[m] === undefined) scoresComplets[m] = overallAvg
+        })
+        Object.keys(formation.poids).forEach((m) => {
+            if (scoresComplets[m] === undefined) scoresComplets[m] = overallAvg
+        })
+        const [reco] = recommanderFormations(scoresComplets, defaultPreferences, [formation])
+        if (!reco) return null
+        const biais = hashBias(formation.nom)
+        return Math.round(clamp(reco.score + biais, 0, 100))
+    }, [aggregatedScores, defaultPreferences, overallAvg, studentGrades.length])
 
     const saveWishes = async () => {
         setSaving(true)
@@ -104,6 +238,14 @@ export default function SchoolSelector() {
         <div className="glass-card">
             <h2>🏫 Choisir mes Écoles</h2>
 
+            {loadingGrades ? (
+                <p style={{ opacity: 0.7 }}>Analyse de vos notes...</p>
+            ) : studentGrades.length === 0 ? (
+                <p style={{ opacity: 0.7 }}>Ajoutez vos notes dans l’onglet « Mes Notes » pour estimer la compatibilité avec chaque école.</p>
+            ) : (
+                <p style={{ opacity: 0.7 }}>Compatibilité calculée sur {studentGrades.length} note(s) enregistrée(s).</p>
+            )}
+
             <div style={{ marginBottom: '2rem' }}>
                 <input type="text" placeholder="Rechercher une école, une ville..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ width: '100%' }} />
                 {loading && <p>Chargement...</p>}
@@ -117,6 +259,12 @@ export default function SchoolSelector() {
                             <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>{school['Nom de l\'établissement']}</h3>
                             <p style={{ margin: 0, color: 'var(--text-secondary)' }}>{school['Nom long de la formation']}</p>
                             <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--primary-color)' }}>📍 {school['Commune']} ({school['Département']})</p>
+                        </div>
+                        <div style={{ textAlign: 'center', marginRight: '1rem' }}>
+                            <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.7 }}>Compatibilité</p>
+                            <p style={{ margin: 0, fontSize: '1.4rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>
+                                {computeCompatibility(school) !== null ? `${computeCompatibility(school)}%` : '—'}
+                            </p>
                         </div>
                         <button className="btn-secondary" onClick={() => toggleSelection(school)} style={{ background: selectedSchools.includes(school) ? 'var(--success-color)' : 'transparent', borderColor: selectedSchools.includes(school) ? 'var(--success-color)' : 'var(--border-color)', color: selectedSchools.includes(school) ? 'white' : 'inherit' }}>
                             {selectedSchools.includes(school) ? 'Sélectionné' : 'Choisir'}
@@ -148,7 +296,7 @@ export default function SchoolSelector() {
                     savedWishes.length === 0 ? <p style={{ opacity: 0.7 }}>Aucun vœu enregistré.</p> :
                         <div style={{ display: 'grid', gap: '1rem', marginTop: '1rem' }}>
                             {savedWishes.map((wish, index) => (
-                                <motion.div key={wish.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ background: 'var(--card-bg)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
+                                <motion.div key={wish.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ background: 'var(--card-bg)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
                                     <div style={{ flex: 1 }}>
                                         <div style={{ marginBottom: '0.5rem' }}>
                                             <span style={{ background: 'var(--primary-color)', color: 'white', padding: '0.25rem 0.75rem', borderRadius: '4px', fontSize: '0.85rem', fontWeight: '600' }}>Vœu {index + 1}</span>
@@ -156,6 +304,28 @@ export default function SchoolSelector() {
                                         <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', color: 'var(--text-primary)' }}>{wish.school_name}</h4>
                                         <p style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-color)', fontSize: '0.95rem' }}>{wish.program_name}</p>
                                         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>📍 {wish.city}</p>
+                                    </div>
+                                    <div style={{ textAlign: 'center', minWidth: '120px' }}>
+                                        <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.7 }}>Compatibilité estimée</p>
+                                        <p style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700, color: 'var(--primary-color)' }}>
+                                            {computeCompatibility({
+                                                'Identifiant de l\'établissement': '',
+                                                'Nom de l\'établissement': wish.school_name,
+                                                'Commune': wish.city,
+                                                'Département': '',
+                                                'Nom long de la formation': wish.program_name,
+                                                'Lien vers la fiche formation': ''
+                                            }) !== null
+                                                ? `${computeCompatibility({
+                                                    'Identifiant de l\'établissement': '',
+                                                    'Nom de l\'établissement': wish.school_name,
+                                                    'Commune': wish.city,
+                                                    'Département': '',
+                                                    'Nom long de la formation': wish.program_name,
+                                                    'Lien vers la fiche formation': ''
+                                                })}%`
+                                                : '—'}
+                                        </p>
                                     </div>
                                     <button onClick={() => deleteWish(wish.id)} style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', background: 'var(--error-color)', border: 'none', borderRadius: '6px', color: 'white', cursor: 'pointer', fontWeight: '500' }}>
                                         Supprimer
