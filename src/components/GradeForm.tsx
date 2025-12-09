@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import Papa from 'papaparse'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from './Auth/AuthProvider'
 import {
@@ -32,6 +33,8 @@ export default function GradeForm() {
     const [highestGrade, setHighestGrade] = useState('')
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null)
+    const [importing, setImporting] = useState(false)
+    const [importMessage, setImportMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null)
     const [savedGrades, setSavedGrades] = useState<any[]>([])
     const [loadingGrades, setLoadingGrades] = useState(true)
 
@@ -107,6 +110,81 @@ export default function GradeForm() {
         }
     }
 
+    const handleImport = (file: File) => {
+        setImporting(true)
+        setImportMessage(null)
+
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            transformHeader: (header) => header.trim().toLowerCase(),
+            complete: async (results) => {
+                try {
+                    const rows = (results.data as Record<string, any>[]).map(row =>
+                        Object.fromEntries(
+                            Object.entries(row).map(([key, value]) => [key, typeof value === 'string' ? value.trim() : value])
+                        )
+                    )
+
+                    const parseNumber = (value: any) => {
+                        if (value === null || value === undefined || value === '') return null
+                        const num = parseFloat(String(value).replace(',', '.'))
+                        return Number.isFinite(num) ? num : null
+                    }
+
+                    const normalized = rows
+                        .map((row) => {
+                            const subjectValue = row.subject
+                            const gradeValue = parseNumber(row.grade)
+
+                            if (!subjectValue || gradeValue === null) return null
+
+                            const selectedPathway = (row.student_pathway || row.pathway || pathway) as Pathway
+                            const selectedYear = (row.year_level || yearLevel) as YearLevel
+
+                            return {
+                                user_id: user?.id,
+                                student_pathway: selectedPathway,
+                                year_level: selectedYear,
+                                term: row.term || term,
+                                subject_type: row.subject_type === 'specialite' ? 'specialite' : 'commune',
+                                subject: subjectValue,
+                                grade: gradeValue,
+                                class_average: parseNumber(row.class_average),
+                                lowest_grade: parseNumber(row.lowest_grade),
+                                highest_grade: parseNumber(row.highest_grade),
+                                tech_series: row.tech_series || null,
+                                professional_field: row.professional_field || null
+                            }
+                        })
+                        .filter(Boolean) as any[]
+
+                    if (normalized.length === 0) {
+                        setImportMessage({ text: 'Aucune ligne valide trouvée (vérifiez sujet et note).', type: 'error' })
+                        setImporting(false)
+                        return
+                    }
+
+                    const { error } = await supabase.from('grades').insert(normalized)
+                    if (error) throw error
+
+                    const { data } = await supabase.from('grades').select('*').eq('user_id', user?.id).order('created_at', { ascending: false })
+                    if (data) setSavedGrades(data)
+
+                    setImportMessage({ text: `${normalized.length} notes importées.`, type: 'success' })
+                } catch (err: any) {
+                    setImportMessage({ text: `Erreur lors de l'import : ${err.message}`, type: 'error' })
+                } finally {
+                    setImporting(false)
+                }
+            },
+            error: (err) => {
+                setImporting(false)
+                setImportMessage({ text: `Erreur de lecture du fichier : ${err.message}`, type: 'error' })
+            }
+        })
+    }
+
     const deleteGrade = async (id: number) => {
         if (!confirm('Voulez-vous supprimer cette note ?')) return
         await supabase.from('grades').delete().eq('id', id)
@@ -116,6 +194,38 @@ export default function GradeForm() {
     return (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card">
             <h2>📝 Mes Notes</h2>
+
+            <div style={{ marginBottom: '2rem', padding: '1rem', border: '1px dashed var(--border-color)', borderRadius: '8px', background: 'rgba(102, 126, 234, 0.05)' }}>
+                <h3 style={{ marginTop: 0 }}>Importer un bulletin (.csv)</h3>
+                <p style={{ margin: '0 0 0.5rem 0', color: 'var(--text-secondary)' }}>
+                    Utilisez le modèle pour remplir vos notes puis importez le fichier.
+                </p>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <input
+                        type="file"
+                        accept=".csv"
+                        onChange={(e) => e.target.files?.[0] && handleImport(e.target.files[0])}
+                        disabled={importing}
+                    />
+                   
+                </div>
+                {importMessage && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        style={{
+                            marginTop: '0.75rem',
+                            padding: '0.75rem',
+                            borderRadius: '6px',
+                            backgroundColor: importMessage.type === 'success' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                            color: importMessage.type === 'success' ? 'var(--success-color)' : 'var(--error-color)'
+                        }}
+                    >
+                        {importMessage.text}
+                    </motion.div>
+                )}
+            </div>
+
             <form onSubmit={handleSubmit}>
                 <div className="grid-2">
                     <div>

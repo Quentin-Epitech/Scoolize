@@ -14,7 +14,8 @@ function AppContent() {
   if (loading) {
     return (
       <div className="container" style={{ textAlign: 'center', paddingTop: '5rem' }}>
-        <h2>Chargement</h2></div>)}
+        <h2>Chargement</h2></div>)
+  }
 
   if (!user) {
     return (
@@ -46,7 +47,7 @@ function AppContent() {
             className="btn-secondary"
             style={{ padding: '0.6rem 1.2rem' }}
           >
-             Déconnexion
+            Déconnexion
           </button>
         </div>
       </header>
@@ -60,7 +61,7 @@ function AppContent() {
             color: activeTab === 'grades' ? 'white' : 'var(--text-secondary)'
           }}
         >
-           Mes Notes
+          Mes Notes
         </button>
         <button
           onClick={() => setActiveTab('schools')}
@@ -77,12 +78,14 @@ function AppContent() {
       <main>
         {activeTab === 'grades' ? <GradeForm /> : <SchoolSelector />}
       </main>
-    </div>)}
+    </div>)
+}
 
 function App() {
   return (
     <AuthProvider>
       <AppContent />
-    </AuthProvider>)}
+    </AuthProvider>)
+}
 
 export default App
