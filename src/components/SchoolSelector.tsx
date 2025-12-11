@@ -3,7 +3,7 @@ import Papa from 'papaparse'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from './Auth/AuthProvider'
-import { recommanderFormations, type ScoresEtudiant, type Preferences, type Formation } from '../lib/predict'
+import { recommanderFormations, type ScoresEtudiant, type Preferences, type Formation } from '../lib/ict'
 
 interface School {
     'Identifiant de l\'établissement': string
@@ -235,105 +235,402 @@ export default function SchoolSelector() {
     }
 
     return (
-        <div className="glass-card">
-            <h2>🏫 Choisir mes Écoles</h2>
-
-            {loadingGrades ? (
-                <p style={{ opacity: 0.7 }}>Analyse de vos notes...</p>
-            ) : studentGrades.length === 0 ? (
-                <p style={{ opacity: 0.7 }}>Ajoutez vos notes dans l’onglet « Mes Notes » pour estimer la compatibilité avec chaque école.</p>
-            ) : (
-                <p style={{ opacity: 0.7 }}>Compatibilité calculée sur {studentGrades.length} note(s) enregistrée(s).</p>
-            )}
-
+        <div>
             <div style={{ marginBottom: '2rem' }}>
-                <input type="text" placeholder="Rechercher une école, une ville..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ width: '100%' }} />
-                {loading && <p>Chargement...</p>}
-                {!loading && searchTerm.length < 3 && <p style={{ opacity: 0.7 }}>Tapez au moins 3 caractères.</p>}
+                <p style={{ 
+                    fontSize: '0.9375rem', 
+                    color: 'var(--text-secondary)', 
+                    margin: '0 0 1.5rem 0',
+                    lineHeight: '1.6'
+                }}>
+                    Recherchez et sélectionnez les formations pour lesquelles vous souhaitez formuler un vœu. Vous pouvez formuler jusqu'à 10 vœux.
+                </p>
+            </div>
+
+            <div style={{ 
+                marginBottom: '2rem', 
+                padding: '1.25rem', 
+                background: 'var(--bg-secondary)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border)'
+            }}>
+                {loadingGrades ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-secondary)' }}>
+                        <div style={{
+                            width: '20px',
+                            height: '20px',
+                            border: '2px solid var(--border)',
+                            borderTopColor: 'var(--primary)',
+                            borderRadius: '50%',
+                            animation: 'spin 0.8s linear infinite'
+                        }} />
+                        <span>Analyse de vos notes...</span>
+                    </div>
+                ) : studentGrades.length === 0 ? (
+                    <div style={{ color: 'var(--text-secondary)' }}>
+                        Ajoutez vos notes dans l'onglet « Mes Notes » pour estimer la compatibilité avec chaque école.
+                    </div>
+                ) : (
+                    <div style={{ color: 'var(--text-secondary)' }}>
+                        Compatibilité calculée sur <strong style={{ color: 'var(--primary)' }}>{studentGrades.length}</strong> note{studentGrades.length > 1 ? 's' : ''} enregistrée{studentGrades.length > 1 ? 's' : ''}.
+                    </div>
+                )}
+            </div>
+
+            <div style={{ marginBottom: '2rem', position: 'relative' }}>
+                <input 
+                    type="text" 
+                    placeholder="Rechercher une école, une ville, une formation..." 
+                    value={searchTerm} 
+                    onChange={(e) => setSearchTerm(e.target.value)} 
+                    style={{ 
+                        width: '100%',
+                        paddingLeft: '3rem',
+                        fontSize: '1rem'
+                    }} 
+                />
+                <div style={{
+                    position: 'absolute',
+                    left: '1rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    fontSize: '1.25rem',
+                    opacity: 0.5
+                }}>
+                </div>
+                {loading && (
+                    <p style={{ marginTop: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{
+                            width: '16px',
+                            height: '16px',
+                            border: '2px solid var(--border)',
+                            borderTopColor: 'var(--primary)',
+                            borderRadius: '50%',
+                            animation: 'spin 0.8s linear infinite'
+                        }} />
+                        Chargement...
+                    </p>
+                )}
+                {!loading && searchTerm.length > 0 && searchTerm.length < 3 && (
+                    <p style={{ marginTop: '0.75rem', color: 'var(--text-tertiary)', fontSize: '0.9rem' }}>
+                        Tapez au moins 3 caractères pour rechercher
+                    </p>
+                )}
             </div>
 
             <div style={{ display: 'grid', gap: '1rem' }}>
-                {filteredSchools.map((school, index) => (
-                    <motion.div key={index} initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ background: 'var(--card-bg)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                            <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>{school['Nom de l\'établissement']}</h3>
-                            <p style={{ margin: 0, color: 'var(--text-secondary)' }}>{school['Nom long de la formation']}</p>
-                            <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--primary-color)' }}>📍 {school['Commune']} ({school['Département']})</p>
-                        </div>
-                        <div style={{ textAlign: 'center', marginRight: '1rem' }}>
-                            <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.7 }}>Compatibilité</p>
-                            <p style={{ margin: 0, fontSize: '1.4rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>
-                                {computeCompatibility(school) !== null ? `${computeCompatibility(school)}%` : '—'}
-                            </p>
-                        </div>
-                        <button className="btn-secondary" onClick={() => toggleSelection(school)} style={{ background: selectedSchools.includes(school) ? 'var(--success-color)' : 'transparent', borderColor: selectedSchools.includes(school) ? 'var(--success-color)' : 'var(--border-color)', color: selectedSchools.includes(school) ? 'white' : 'inherit' }}>
-                            {selectedSchools.includes(school) ? 'Sélectionné' : 'Choisir'}
-                        </button>
-                    </motion.div>
-                ))}
+                {filteredSchools.map((school, index) => {
+                    const compatibility = computeCompatibility(school)
+                    const isSelected = selectedSchools.includes(school)
+                    return (
+                        <motion.div 
+                            key={index} 
+                            initial={{ opacity: 0, y: 10 }} 
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                            style={{ 
+                                background: isSelected ? 'rgba(46, 125, 50, 0.08)' : 'var(--bg-primary)', 
+                                padding: '1.5rem', 
+                                borderRadius: 'var(--radius-lg)', 
+                                border: `1.5px solid ${isSelected ? 'var(--success)' : 'var(--border)'}`, 
+                                display: 'flex', 
+                                justifyContent: 'space-between', 
+                                alignItems: 'center',
+                                gap: '1.5rem',
+                                transition: 'all 0.15s ease',
+                                position: 'relative'
+                            }}
+                            onMouseEnter={(e) => {
+                                if (!isSelected) {
+                                    e.currentTarget.style.background = 'var(--bg-secondary)'
+                                    e.currentTarget.style.borderColor = 'var(--primary)'
+                                    e.currentTarget.style.boxShadow = 'var(--shadow-sm)'
+                                }
+                            }}
+                            onMouseLeave={(e) => {
+                                if (!isSelected) {
+                                    e.currentTarget.style.background = 'var(--bg-primary)'
+                                    e.currentTarget.style.borderColor = 'var(--border)'
+                                    e.currentTarget.style.transform = 'translateY(0)'
+                                    e.currentTarget.style.boxShadow = 'none'
+                                }
+                            }}
+                        >
+                            <div style={{ flex: 1 }}>
+                                <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.15rem', color: 'var(--text-primary)' }}>
+                                    {school['Nom de l\'établissement']}
+                                </h3>
+                                <p style={{ margin: '0 0 0.5rem 0', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+                                    {school['Nom long de la formation']}
+                                </p>
+                                <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                                    {school['Commune']} ({school['Département']})
+                                </p>
+                            </div>
+                            <div style={{ 
+                                textAlign: 'center', 
+                                marginRight: '1rem',
+                                minWidth: '100px'
+                            }}>
+                                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                    Compatibilité
+                                </p>
+                                <p style={{ 
+                                    margin: '0.5rem 0 0 0', 
+                                    fontSize: '1.75rem', 
+                                    fontWeight: '700', 
+                                    color: compatibility !== null && compatibility >= 70 ? 'var(--success-light)' : 
+                                           compatibility !== null && compatibility >= 50 ? 'var(--primary-light)' : 
+                                           compatibility !== null ? 'var(--warning)' : 'var(--text-tertiary)'
+                                }}>
+                                    {compatibility !== null ? `${compatibility}%` : '—'}
+                                </p>
+                            </div>
+                            <button 
+                                className="btn-secondary" 
+                                onClick={() => toggleSelection(school)} 
+                                style={{ 
+                                    background: isSelected ? 'var(--success)' : 'transparent', 
+                                    borderColor: isSelected ? 'var(--success)' : 'var(--border)', 
+                                    color: isSelected ? 'white' : 'var(--text-secondary)',
+                                    whiteSpace: 'nowrap',
+                                    padding: '0.75rem 1.5rem',
+                                    fontWeight: 600
+                                }}
+                            >
+                                {isSelected ? '✓ Sélectionné' : 'Choisir'}
+                            </button>
+                        </motion.div>
+                    )
+                })}
             </div>
 
             {selectedSchools.length > 0 && (
-                <div style={{ marginTop: '2rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-                    <h3>Mes Vœux ({selectedSchools.length})</h3>
-                    <ul style={{ listStyle: 'none', padding: 0 }}>
+                <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    style={{ 
+                        marginTop: '2.5rem', 
+                        borderTop: '1px solid var(--border)', 
+                        paddingTop: '2rem' 
+                    }}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                        <h3 style={{ margin: 0 }}>Mes Vœux</h3>
+                        <span className="badge" style={{ fontSize: '0.875rem' }}>
+                            {selectedSchools.length} sélectionné{selectedSchools.length > 1 ? 's' : ''}
+                        </span>
+                    </div>
+                    <div style={{ display: 'grid', gap: '0.75rem', marginBottom: '1.5rem' }}>
                         {selectedSchools.map((s, i) => (
-                            <li key={i} style={{ marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                                <span>{s['Nom de l\'établissement']} - {s['Nom long de la formation']}</span>
-                                <button onClick={() => toggleSelection(s)} style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem', background: 'var(--error-color)', border: 'none', borderRadius: '4px', color: 'white' }}>X</button>
-                            </li>
+                            <div 
+                                key={i} 
+                                style={{ 
+                                    padding: '1rem 1.25rem', 
+                                    background: 'var(--bg-secondary)',
+                                    borderRadius: 'var(--radius-lg)',
+                                    border: '1px solid var(--border)',
+                                    display: 'flex', 
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    gap: '1rem'
+                                }}
+                            >
+                                <div style={{ flex: 1 }}>
+                                    <strong style={{ color: 'var(--primary-light)' }}>{s['Nom de l\'établissement']}</strong>
+                                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                                        {s['Nom long de la formation']}
+                                    </p>
+                                </div>
+                                <button 
+                                    onClick={() => toggleSelection(s)} 
+                                    style={{ 
+                                        padding: '0.5rem 0.75rem', 
+                                        fontSize: '0.875rem', 
+                                        background: 'rgba(239, 68, 68, 0.2)', 
+                                        border: '1px solid rgba(239, 68, 68, 0.3)', 
+                                        borderRadius: 'var(--radius-lg)', 
+                                        color: 'var(--error-light)',
+                                        cursor: 'pointer',
+                                        fontWeight: '600',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.background = 'var(--error)'
+                                        e.currentTarget.style.borderColor = 'var(--error)'
+                                        e.currentTarget.style.color = 'white'
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'
+                                        e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)'
+                                        e.currentTarget.style.color = 'var(--error-light)'
+                                    }}
+                                >
+                                    ✕
+                                </button>
+                            </div>
                         ))}
-                    </ul>
+                    </div>
                     <button className="btn-primary" onClick={saveWishes} disabled={saving}>
-                        {saving ? 'Enregistrement...' : 'Valider mes vœux'}
+                        {saving ? (
+                            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                <span style={{
+                                    width: '16px',
+                                    height: '16px',
+                                    border: '2px solid rgba(255,255,255,0.3)',
+                                    borderTopColor: 'white',
+                                    borderRadius: '50%',
+                                    animation: 'spin 0.8s linear infinite',
+                                    display: 'inline-block'
+                                }} />
+                                Enregistrement...
+                            </span>
+                        ) : (
+                            '✓ Valider mes vœux'
+                        )}
                     </button>
-                </div>
+                </motion.div>
             )}
 
-            <div style={{ marginTop: '3rem', borderTop: '1px solid var(--border-color)', paddingTop: '2rem' }}>
-                <h3> Mes Vœux Enregistrés</h3>
-                {loadingWishes ? <p style={{ opacity: 0.7 }}>Chargement...</p> :
-                    savedWishes.length === 0 ? <p style={{ opacity: 0.7 }}>Aucun vœu enregistré.</p> :
-                        <div style={{ display: 'grid', gap: '1rem', marginTop: '1rem' }}>
-                            {savedWishes.map((wish, index) => (
-                                <motion.div key={wish.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ background: 'var(--card-bg)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
+            <div style={{ marginTop: '3rem', borderTop: '1px solid var(--border)', paddingTop: '2.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                    <h3 style={{ margin: 0 }}>Mes Vœux Enregistrés</h3>
+                    {savedWishes.length > 0 && (
+                        <span className="badge" style={{ fontSize: '0.875rem' }}>
+                            {savedWishes.length} vœu{savedWishes.length > 1 ? 'x' : ''}
+                        </span>
+                    )}
+                </div>
+                {loadingWishes ? (
+                    <div style={{ textAlign: 'center', padding: '3rem', opacity: 0.7 }}>
+                        <div style={{
+                            width: '40px',
+                            height: '40px',
+                            border: '3px solid var(--border)',
+                            borderTopColor: 'var(--primary)',
+                            borderRadius: '50%',
+                            margin: '0 auto 1rem',
+                            animation: 'spin 1s linear infinite'
+                        }} />
+                        <p>Chargement...</p>
+                    </div>
+                ) : savedWishes.length === 0 ? (
+                    <div style={{ 
+                        textAlign: 'center', 
+                        padding: '3rem',
+                        background: 'var(--bg-secondary)',
+                        borderRadius: 'var(--radius-lg)',
+                        border: '1px dashed var(--border)'
+                    }}>
+                        <p style={{ color: 'var(--text-secondary)' }}>Aucun vœu enregistré.</p>
+                    </div>
+                ) : (
+                    <div style={{ display: 'grid', gap: '1rem', marginTop: '1rem' }}>
+                        {savedWishes.map((wish, index) => {
+                            const compatibility = computeCompatibility({
+                                'Identifiant de l\'établissement': '',
+                                'Nom de l\'établissement': wish.school_name,
+                                'Commune': wish.city,
+                                'Département': '',
+                                'Nom long de la formation': wish.program_name,
+                                'Lien vers la fiche formation': ''
+                            })
+                            return (
+                                <motion.div 
+                                    key={wish.id} 
+                                    initial={{ opacity: 0, y: 10 }} 
+                                    animate={{ opacity: 1, y: 0 }}
+                                    style={{ 
+                                        background: 'var(--bg-primary)', 
+                                        padding: '1.5rem', 
+                                        borderRadius: 'var(--radius-lg)', 
+                                        border: '1px solid var(--border)', 
+                                        display: 'flex', 
+                                        justifyContent: 'space-between', 
+                                        alignItems: 'flex-start', 
+                                        gap: '1.5rem', 
+                                        flexWrap: 'wrap',
+                                        transition: 'all 0.3s ease'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.background = 'var(--bg-secondary)'
+                                        e.currentTarget.style.borderColor = 'var(--primary)'
+                                        e.currentTarget.style.boxShadow = 'var(--shadow-sm)'
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = 'var(--bg-primary)'
+                                        e.currentTarget.style.borderColor = 'var(--border)'
+                                        e.currentTarget.style.transform = 'translateY(0)'
+                                        e.currentTarget.style.boxShadow = 'none'
+                                    }}
+                                >
                                     <div style={{ flex: 1 }}>
-                                        <div style={{ marginBottom: '0.5rem' }}>
-                                            <span style={{ background: 'var(--primary-color)', color: 'white', padding: '0.25rem 0.75rem', borderRadius: '4px', fontSize: '0.85rem', fontWeight: '600' }}>Vœu {index + 1}</span>
+                                        <div style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <span className="badge" style={{ 
+                                                background: 'var(--primary)',
+                                                color: 'white',
+                                                border: 'none'
+                                            }}>
+                                                Vœu {index + 1}
+                                            </span>
                                         </div>
-                                        <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', color: 'var(--text-primary)' }}>{wish.school_name}</h4>
-                                        <p style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-color)', fontSize: '0.95rem' }}>{wish.program_name}</p>
-                                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>📍 {wish.city}</p>
-                                    </div>
-                                    <div style={{ textAlign: 'center', minWidth: '120px' }}>
-                                        <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.7 }}>Compatibilité estimée</p>
-                                        <p style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700, color: 'var(--primary-color)' }}>
-                                            {computeCompatibility({
-                                                'Identifiant de l\'établissement': '',
-                                                'Nom de l\'établissement': wish.school_name,
-                                                'Commune': wish.city,
-                                                'Département': '',
-                                                'Nom long de la formation': wish.program_name,
-                                                'Lien vers la fiche formation': ''
-                                            }) !== null
-                                                ? `${computeCompatibility({
-                                                    'Identifiant de l\'établissement': '',
-                                                    'Nom de l\'établissement': wish.school_name,
-                                                    'Commune': wish.city,
-                                                    'Département': '',
-                                                    'Nom long de la formation': wish.program_name,
-                                                    'Lien vers la fiche formation': ''
-                                                })}%`
-                                                : '—'}
+                                        <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.15rem', color: 'var(--text-primary)' }}>
+                                            {wish.school_name}
+                                        </h4>
+                                        <p style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-light)', fontSize: '0.95rem', fontWeight: 500 }}>
+                                            {wish.program_name}
+                                        </p>
+                                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                                            {wish.city}
                                         </p>
                                     </div>
-                                    <button onClick={() => deleteWish(wish.id)} style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', background: 'var(--error-color)', border: 'none', borderRadius: '6px', color: 'white', cursor: 'pointer', fontWeight: '500' }}>
+                                    <div style={{ textAlign: 'center', minWidth: '120px' }}>
+                                        <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                            Compatibilité
+                                        </p>
+                                        <p style={{ 
+                                            margin: '0.5rem 0 0 0', 
+                                            fontSize: '1.75rem', 
+                                            fontWeight: 700, 
+                                            color: compatibility !== null && compatibility >= 70 ? 'var(--success-light)' : 
+                                                   compatibility !== null && compatibility >= 50 ? 'var(--primary-light)' : 
+                                                   compatibility !== null ? 'var(--warning)' : 'var(--text-tertiary)'
+                                        }}>
+                                            {compatibility !== null ? `${compatibility}%` : '—'}
+                                        </p>
+                                    </div>
+                                    <button 
+                                        onClick={() => deleteWish(wish.id)} 
+                                        style={{ 
+                                            padding: '0.625rem 1rem', 
+                                            fontSize: '0.875rem', 
+                                            background: 'rgba(239, 68, 68, 0.2)', 
+                                            border: '1px solid rgba(239, 68, 68, 0.3)', 
+                                            borderRadius: 'var(--radius-lg)', 
+                                            color: 'var(--error-light)', 
+                                            cursor: 'pointer', 
+                                            fontWeight: '600',
+                                            transition: 'all 0.2s ease',
+                                            whiteSpace: 'nowrap'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.background = 'var(--error)'
+                                            e.currentTarget.style.borderColor = 'var(--error)'
+                                            e.currentTarget.style.color = 'white'
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'
+                                            e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)'
+                                            e.currentTarget.style.color = 'var(--error-light)'
+                                        }}
+                                    >
                                         Supprimer
                                     </button>
                                 </motion.div>
-                            ))}
-                        </div>
-                }
+                            )
+                        })}
+                    </div>
+                )}
             </div>
         </div>
     )

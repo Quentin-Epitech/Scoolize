@@ -76,11 +76,33 @@ export default function Signup({ onToggleMode }: SignupProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="glass-card"
-            style={{ maxWidth: '400px', margin: '2rem auto' }}
+            style={{ maxWidth: '500px', margin: '2rem auto' }}
         >
-            <h2>Inscription</h2>
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <div style={{
+                    width: '64px',
+                    height: '64px',
+                    margin: '0 auto 1rem',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    color: 'white',
+                    boxShadow: 'var(--shadow-md)'
+                }}>
+                    INSCRIPTION
+                </div>
+                <h2 style={{ marginBottom: '0.5rem' }}>Inscription</h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+                    Créez votre compte pour commencer
+                </p>
+            </div>
+            
             <form onSubmit={handleSubmit}>
-                <div>
+                <div style={{ marginBottom: '1.5rem' }}>
                     <label htmlFor="email">Email</label>
                     <input
                         id="email"
@@ -92,7 +114,7 @@ export default function Signup({ onToggleMode }: SignupProps) {
                     />
                 </div>
 
-                <div>
+                <div style={{ marginBottom: '1.5rem' }}>
                     <label htmlFor="password">Mot de passe</label>
                     <input
                         id="password"
@@ -104,7 +126,7 @@ export default function Signup({ onToggleMode }: SignupProps) {
                     />
                 </div>
 
-                <div>
+                <div style={{ marginBottom: '1.5rem' }}>
                     <label htmlFor="confirmPassword">Confirmer le mot de passe</label>
                     <input
                         id="confirmPassword"
@@ -116,61 +138,85 @@ export default function Signup({ onToggleMode }: SignupProps) {
                     />
                 </div>
 
-                <LyceeSelector
-                    onSelect={setLycee}
-                    selectedLycee={lycee}
-                    required={false}
-                />
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <LyceeSelector
+                        onSelect={setLycee}
+                        selectedLycee={lycee}
+                        required={false}
+                    />
+                </div>
 
                 {error && (
                     <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="status-error"
                         style={{
-                            marginTop: '1rem',
+                            marginBottom: '1rem',
                             padding: '1rem',
-                            borderRadius: '8px',
-                            backgroundColor: 'rgba(245, 101, 101, 0.2)',
-                            color: '#f56565'
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem'
                         }}
                     >
-                        {error}
+                        <span>{error}</span>
                     </motion.div>
                 )}
 
                 {success && (
                     <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="status-success"
                         style={{
-                            marginTop: '1rem',
+                            marginBottom: '1rem',
                             padding: '1rem',
-                            borderRadius: '8px',
-                            backgroundColor: 'rgba(72, 187, 120, 0.2)',
-                            color: '#48bb78'
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem'
                         }}
                     >
-                         Compte créé avec succès ! Redirection...
+                        <span>Compte créé avec succès ! Redirection...</span>
                     </motion.div>
                 )}
 
                 <button type="submit" className="btn-primary" disabled={loading}>
-                    {loading ? 'Création...' : 'Créer mon compte'}
+                    {loading ? (
+                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                            <span style={{
+                                width: '16px',
+                                height: '16px',
+                                border: '2px solid rgba(255,255,255,0.3)',
+                                borderTopColor: 'white',
+                                borderRadius: '50%',
+                                animation: 'spin 0.8s linear infinite',
+                                display: 'inline-block'
+                            }} />
+                            Création...
+                        </span>
+                    ) : (
+                        'Créer mon compte'
+                    )}
                 </button>
 
-                <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+                <div style={{ marginTop: '1.5rem', textAlign: 'center', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
                     <button
                         type="button"
                         onClick={onToggleMode}
                         style={{
                             background: 'transparent',
                             border: 'none',
-                            color: '#667eea',
+                            color: 'var(--primary-light)',
                             cursor: 'pointer',
-                            textDecoration: 'underline'
+                            fontSize: '0.95rem',
+                            fontWeight: 500,
+                            textDecoration: 'none',
+                            transition: 'color 0.2s'
                         }}
+                        onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
+                        onMouseLeave={(e) => e.currentTarget.style.color = 'var(--primary-light)'}
                     >
-                        Déjà un compte ? Se connecter
+                        Déjà un compte ? <strong>Se connecter</strong>
                     </button>
                 </div>
             </form>

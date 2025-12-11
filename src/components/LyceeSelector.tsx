@@ -140,12 +140,13 @@ export default function LyceeSelector({ onSelect, selectedLycee, required = fals
                             right: 0,
                             maxHeight: '300px',
                             overflowY: 'auto',
-                            background: 'var(--card-bg)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '8px',
+                            background: 'var(--glass-bg)',
+                            backdropFilter: 'blur(20px)',
+                            border: '1px solid var(--glass-border)',
+                            borderRadius: 'var(--radius-md)',
                             marginTop: '0.5rem',
                             zIndex: 1000,
-                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+                            boxShadow: 'var(--glass-shadow)'
                         }}
                     >
                         {filteredLycees.map((lycee, index) => (
@@ -159,7 +160,7 @@ export default function LyceeSelector({ onSelect, selectedLycee, required = fals
                                     transition: 'background-color 0.2s'
                                 }}
                                 onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'rgba(102, 126, 234, 0.1)'
+                                    e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.15)'
                                 }}
                                 onMouseLeave={(e) => {
                                     e.currentTarget.style.backgroundColor = 'transparent'
@@ -182,21 +183,25 @@ export default function LyceeSelector({ onSelect, selectedLycee, required = fals
 
             {selectedLycee && (
                 <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="status-success"
                     style={{
-                        marginTop: '0.5rem',
-                        padding: '0.75rem',
-                        background: 'rgba(102, 126, 234, 0.1)',
-                        borderRadius: '6px',
-                        fontSize: '0.9rem'
+                        marginTop: '0.75rem',
+                        padding: '1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem'
                     }}
                 >
-                    <div style={{ fontWeight: '500', color: 'var(--primary-color)' }}>
-                        ✓ Lycée sélectionné
-                    </div>
-                    <div style={{ marginTop: '0.25rem', color: 'var(--text-secondary)' }}>
-                        {selectedLycee.Nom_commune} ({selectedLycee.Libelle_departement})
+                    <span style={{ fontSize: '1.25rem' }}>✓</span>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: '600', color: 'var(--success-light)', marginBottom: '0.25rem' }}>
+                            Lycée sélectionné
+                        </div>
+                        <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                            {selectedLycee.Nom_commune} ({selectedLycee.Libelle_departement})
+                        </div>
                     </div>
                 </motion.div>
             )}

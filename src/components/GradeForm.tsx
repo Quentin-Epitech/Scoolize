@@ -192,12 +192,30 @@ export default function GradeForm() {
     }
 
     return (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card">
-            <h2>📝 Mes Notes</h2>
+        <div>
+            <div style={{ marginBottom: '2rem' }}>
+                <p style={{ 
+                    fontSize: '0.9375rem', 
+                    color: 'var(--text-secondary)', 
+                    margin: '0 0 1.5rem 0',
+                    lineHeight: '1.6'
+                }}>
+                    Vous devez importer vos notes pour permettre au système de calculer vos chances d'admission dans les formations souhaitées.
+                </p>
+            </div>
 
-            <div style={{ marginBottom: '2rem', padding: '1rem', border: '1px dashed var(--border-color)', borderRadius: '8px', background: 'rgba(102, 126, 234, 0.05)' }}>
-                <h3 style={{ marginTop: 0 }}>Importer un bulletin (.csv)</h3>
-                <p style={{ margin: '0 0 0.5rem 0', color: 'var(--text-secondary)' }}>
+            <div style={{ 
+                marginBottom: '2.5rem', 
+                padding: '1.5rem', 
+                border: '1.5px dashed var(--border)', 
+                borderRadius: 'var(--radius-md)', 
+                background: 'var(--bg-secondary)',
+                backdropFilter: 'blur(10px)'
+            }}>
+                <div style={{ marginBottom: '0.75rem' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.25rem' }}>Importer un bulletin (.csv)</h3>
+                </div>
+                <p style={{ margin: '0 0 1rem 0', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
                     Utilisez le modèle pour remplir vos notes puis importez le fichier.
                 </p>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -206,22 +224,26 @@ export default function GradeForm() {
                         accept=".csv"
                         onChange={(e) => e.target.files?.[0] && handleImport(e.target.files[0])}
                         disabled={importing}
+                        style={{ 
+                            padding: '0.75rem',
+                            cursor: importing ? 'not-allowed' : 'pointer'
+                        }}
                     />
-                   
                 </div>
                 {importMessage && (
                     <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={importMessage.type === 'success' ? 'status-success' : 'status-error'}
                         style={{
-                            marginTop: '0.75rem',
-                            padding: '0.75rem',
-                            borderRadius: '6px',
-                            backgroundColor: importMessage.type === 'success' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                            color: importMessage.type === 'success' ? 'var(--success-color)' : 'var(--error-color)'
+                            marginTop: '1rem',
+                            padding: '1rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem'
                         }}
                     >
-                        {importMessage.text}
+                        <span>{importMessage.text}</span>
                     </motion.div>
                 )}
             </div>
@@ -312,61 +334,157 @@ export default function GradeForm() {
                 </button>
 
                 {message && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ marginTop: '1rem', padding: '1rem', borderRadius: '8px', backgroundColor: message.type === 'success' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)', color: message.type === 'success' ? 'var(--success-color)' : 'var(--error-color)' }}>
-                        {message.text}
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.95 }} 
+                        animate={{ opacity: 1, scale: 1 }}
+                        className={message.type === 'success' ? 'status-success' : 'status-error'}
+                        style={{ 
+                            marginTop: '1rem', 
+                            padding: '1rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem'
+                        }}
+                    >
+                        <span>{message.text}</span>
                     </motion.div>
                 )}
             </form>
 
-            <div style={{ marginTop: '3rem', borderTop: '1px solid var(--border-color)', paddingTop: '2rem' }}>
-                <h3>Mes Notes Enregistrées</h3>
-                {loadingGrades ? <p style={{ opacity: 0.7 }}>Chargement...</p> :
-                    savedGrades.length === 0 ? <p style={{ opacity: 0.7 }}>Aucune note enregistrée.</p> :
-                        <div style={{ display: 'grid', gap: '1rem', marginTop: '1rem' }}>
-                            {savedGrades.map((g) => (
-                                <motion.div key={g.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ background: 'var(--card-bg)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr 1fr 1fr auto', gap: '1rem', alignItems: 'center' }}>
-                                    <div>
-                                        <strong style={{ color: 'var(--primary-color)' }}>{g.subject}</strong>
-                                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.9rem', opacity: 0.7 }}>
-                                            {g.subject_type === 'specialite' ? 'Spécialité' : 'Commune'}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.7 }}>{g.student_pathway} • {g.year_level}</p>
-                                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.9rem', opacity: 0.7 }}>{g.term}</p>
-                                    </div>
-                                    <div style={{ textAlign: 'center' }}>
-                                        <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.7 }}>Ma note</p>
-                                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '1.2rem', fontWeight: 'bold', color: g.grade >= 10 ? 'var(--success-color)' : 'var(--error-color)' }}>
-                                            {g.grade}/20
-                                        </p>
-                                    </div>
-                                    <div style={{ textAlign: 'center' }}>
-                                        <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.7 }}>Moyenne classe</p>
-                                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                                            {g.class_average !== null && g.class_average !== undefined ? `${g.class_average}/20` : '-'}
-                                        </p>
-                                    </div>
-                                    <div style={{ textAlign: 'center' }}>
-                                        <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.7 }}>Note min</p>
-                                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                                            {g.lowest_grade !== null && g.lowest_grade !== undefined ? `${g.lowest_grade}/20` : '-'}
-                                        </p>
-                                    </div>
-                                    <div style={{ textAlign: 'center' }}>
-                                        <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.7 }}>Note max</p>
-                                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                                            {g.highest_grade !== null && g.highest_grade !== undefined ? `${g.highest_grade}/20` : '-'}
-                                        </p>
-                                    </div>
-                                    <button onClick={() => deleteGrade(g.id)} style={{ padding: '0.5rem', fontSize: '0.8rem', background: 'var(--error-color)', border: 'none', borderRadius: '4px', color: 'white', cursor: 'pointer' }}>
-                                        Supprimer
-                                    </button>
-                                </motion.div>
-                            ))}
-                        </div>
-                }
+            <div style={{ marginTop: '3rem', borderTop: '1px solid var(--border)', paddingTop: '2.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                    <h3 style={{ margin: 0 }}>Mes Notes Enregistrées</h3>
+                    {savedGrades.length > 0 && (
+                        <span className="badge" style={{ fontSize: '0.875rem' }}>
+                            {savedGrades.length} note{savedGrades.length > 1 ? 's' : ''}
+                        </span>
+                    )}
+                </div>
+                {loadingGrades ? (
+                    <div style={{ textAlign: 'center', padding: '3rem', opacity: 0.7 }}>
+                        <div style={{
+                            width: '40px',
+                            height: '40px',
+                            border: '3px solid var(--border)',
+                            borderTopColor: 'var(--primary)',
+                            borderRadius: '50%',
+                            margin: '0 auto 1rem',
+                            animation: 'spin 1s linear infinite'
+                        }} />
+                        <p>Chargement...</p>
+                    </div>
+                ) : savedGrades.length === 0 ? (
+                    <div style={{ 
+                        textAlign: 'center', 
+                        padding: '3rem',
+                        background: 'var(--bg-secondary)',
+                        borderRadius: 'var(--radius-lg)',
+                        border: '1px dashed var(--border)'
+                    }}>
+                        <p style={{ color: 'var(--text-secondary)' }}>Aucune note enregistrée.</p>
+                    </div>
+                ) : (
+                    <div style={{ display: 'grid', gap: '1rem', marginTop: '1rem' }}>
+                        {savedGrades.map((g) => (
+                            <motion.div 
+                                key={g.id} 
+                                initial={{ opacity: 0, y: 10 }} 
+                                animate={{ opacity: 1, y: 0 }}
+                                style={{ 
+                                    background: 'var(--bg-primary)', 
+                                    padding: '1.5rem', 
+                                    borderRadius: 'var(--radius-lg)', 
+                                    border: '1px solid var(--border)',
+                                    display: 'grid', 
+                                    gridTemplateColumns: '1.5fr 1fr 1fr 1fr 1fr 1fr auto', 
+                                    gap: '1.5rem', 
+                                    alignItems: 'center',
+                                    transition: 'all 0.3s ease',
+                                    position: 'relative'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = 'var(--bg-secondary)'
+                                    e.currentTarget.style.borderColor = 'var(--primary)'
+                                    e.currentTarget.style.transform = 'translateY(-2px)'
+                                    e.currentTarget.style.boxShadow = 'var(--shadow-md)'
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = 'var(--bg-primary)'
+                                    e.currentTarget.style.borderColor = 'var(--border)'
+                                    e.currentTarget.style.transform = 'translateY(0)'
+                                    e.currentTarget.style.boxShadow = 'none'
+                                }}
+                            >
+                                <div>
+                                    <strong style={{ color: 'var(--primary-light)', fontSize: '1.1rem' }}>{g.subject}</strong>
+                                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>
+                                        {g.subject_type === 'specialite' ? '⭐ Spécialité' : '📚 Commune'}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{g.student_pathway} • {g.year_level}</p>
+                                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>{g.term}</p>
+                                </div>
+                                <div style={{ textAlign: 'center' }}>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ma note</p>
+                                    <p style={{ 
+                                        margin: '0.5rem 0 0 0', 
+                                        fontSize: '1.5rem', 
+                                        fontWeight: '700', 
+                                        color: g.grade >= 10 ? 'var(--success-light)' : 'var(--error-light)'
+                                    }}>
+                                        {g.grade}/20
+                                    </p>
+                                </div>
+                                <div style={{ textAlign: 'center' }}>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Moyenne classe</p>
+                                    <p style={{ margin: '0.5rem 0 0 0', fontSize: '1.25rem', fontWeight: '600', color: 'var(--text-primary)' }}>
+                                        {g.class_average !== null && g.class_average !== undefined ? `${g.class_average}/20` : '—'}
+                                    </p>
+                                </div>
+                                <div style={{ textAlign: 'center' }}>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Note min</p>
+                                    <p style={{ margin: '0.5rem 0 0 0', fontSize: '1.25rem', fontWeight: '600', color: 'var(--text-primary)' }}>
+                                        {g.lowest_grade !== null && g.lowest_grade !== undefined ? `${g.lowest_grade}/20` : '—'}
+                                    </p>
+                                </div>
+                                <div style={{ textAlign: 'center' }}>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Note max</p>
+                                    <p style={{ margin: '0.5rem 0 0 0', fontSize: '1.25rem', fontWeight: '600', color: 'var(--text-primary)' }}>
+                                        {g.highest_grade !== null && g.highest_grade !== undefined ? `${g.highest_grade}/20` : '—'}
+                                    </p>
+                                </div>
+                                <button 
+                                    onClick={() => deleteGrade(g.id)} 
+                                    style={{ 
+                                        padding: '0.625rem 1rem', 
+                                        fontSize: '0.875rem', 
+                                        background: 'rgba(239, 68, 68, 0.2)', 
+                                        border: '1px solid rgba(239, 68, 68, 0.3)', 
+                                        borderRadius: 'var(--radius-lg)', 
+                                        color: 'var(--error-light)', 
+                                        cursor: 'pointer',
+                                        fontWeight: '600',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.background = 'var(--error)'
+                                        e.currentTarget.style.borderColor = 'var(--error)'
+                                        e.currentTarget.style.color = 'white'
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'
+                                        e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)'
+                                        e.currentTarget.style.color = 'var(--error-light)'
+                                    }}
+                                >
+                                    Supprimer
+                                </button>
+                            </motion.div>
+                        ))}
+                    </div>
+                )}
             </div>
-        </motion.div>
+        </div>
     )
 }
