@@ -3,8 +3,8 @@ import Papa from 'papaparse'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from './Auth/AuthProvider'
-import { recommanderFormations, type ScoresEtudiant, type Preferences, type Formation } from '../lib/ict'
-
+import type { ScoresEtudiant, Formation, Preferences } from '../lib/predict'
+import { recommanderFormations } from '../lib/predict'
 interface School {
     'Identifiant de l\'établissement': string
     'Nom de l\'établissement': string
